@@ -1,0 +1,479 @@
+# Replit Prompt: Build a Luxury Beauty Bar Website with an Appointment Booking System (No Online Payments)
+
+I want you to build a **fully responsive, modern, luxury beauty salon website** for **Kat's Beauty Bar** using the attached branding as inspiration. The design should use **soft blush pink, rose gold, white, and black** with elegant animations and a premium feminine aesthetic.
+
+**This is NOT an eCommerce website. There should be NO online payments, NO checkout, and NO deposit system.** The purpose is simply for customers to book appointments.
+
+---
+
+# Tech Stack
+
+Use:
+
+* React + Vite
+* Node.js + Express
+* PostgreSQL (or Supabase)
+* Prisma ORM
+* TailwindCSS
+* JWT Authentication for Admin
+* Nodemailer (or Resend) for emails
+* FullCalendar for appointment management
+
+The project should be production-ready and easy to deploy.
+
+---
+
+# Website Pages
+
+## Home
+
+Create a beautiful landing page featuring:
+
+* Hero section
+* Elegant animations
+* Luxury styling
+* "Book Appointment" button
+* "View Services" button
+
+Headline:
+
+> **Enhancing Your Natural Beauty**
+
+Subheading:
+
+> Hair • Brows • Lashes • Nails
+
+---
+
+## About Us
+
+Include a professionally written section explaining that Kat's Beauty Bar specializes in:
+
+* Hair
+* Brows
+* Lashes
+* Nails
+
+with a welcoming and luxurious atmosphere.
+
+---
+
+## Services
+
+Display services as beautiful cards.
+
+Each service should include:
+
+* Image
+* Name
+* Description
+* Price
+* Duration
+
+Example:
+
+### Hair
+
+* Wash Blow & Iron
+* Wash Cut & Blow
+* Cut
+* Nanoplastia
+* Treatments
+* Colour
+
+### Brows
+
+* Brow Shape
+* Brow Tint
+* Brow Lamination
+
+### Lashes
+
+* Classic
+* Hybrid
+* Volume
+* Lash Lift
+
+### Nails
+
+* Gel
+* Acrylic
+* Manicure
+* Pedicure
+
+---
+
+# Appointment Booking System
+
+This is the main feature.
+
+The booking flow should be:
+
+Choose Service
+
+↓
+
+Choose Date
+
+↓
+
+Choose Available Time
+
+↓
+
+Enter Customer Details
+
+↓
+
+Confirm Appointment
+
+↓
+
+Automatic Emails Sent
+
+---
+
+# Variable Service Durations
+
+Each service has its own duration.
+
+Examples:
+
+| Service       | Duration |
+| ------------- | -------- |
+| Cut           | 30 min   |
+| Wash Blow     | 45 min   |
+| Wash Cut Blow | 60 min   |
+| Nanoplastia   | 180 min  |
+| Lashes        | 90 min   |
+| Nails         | 75 min   |
+
+The system must calculate occupied time automatically.
+
+Example:
+
+If someone books:
+
+10:00
+
+Nanoplastia
+
+(3 hours)
+
+Then the following time slots become unavailable until 13:00.
+
+The booking engine must prevent overlapping appointments.
+
+---
+
+# Live Availability
+
+Customers should only see available appointment times.
+
+Display:
+
+🟢 Available
+
+🔴 Booked
+
+⚪ Closed
+
+Unavailable slots must be disabled.
+
+Availability should update immediately after a booking.
+
+---
+
+# Business Hours
+
+The owner can configure opening hours.
+
+Example:
+
+Monday:
+08:00–17:00
+
+Tuesday:
+08:00–17:00
+
+Wednesday:
+08:00–17:00
+
+Thursday:
+08:00–17:00
+
+Friday:
+08:00–17:00
+
+Saturday:
+08:00–14:00
+
+Sunday:
+Closed
+
+These settings should be editable from the admin dashboard.
+
+---
+
+# Customer Booking Form
+
+Collect:
+
+* Full Name
+* Phone Number
+* Email Address
+* Selected Service
+* Preferred Date
+* Preferred Time
+* Optional Notes
+
+No account should be required for customers to make a booking.
+
+---
+
+# Email Notifications
+
+## Customer Email
+
+Immediately after booking:
+
+Subject:
+
+**Your Appointment is Confirmed 💕**
+
+Example:
+
+Hi Sarah,
+
+Thank you for booking with Kat's Beauty Bar.
+
+Appointment Details
+
+Service:
+Wash Cut & Blow
+
+Date:
+12 July 2026
+
+Time:
+10:00
+
+Duration:
+60 minutes
+
+We look forward to seeing you!
+
+Kat's Beauty Bar
+
+---
+
+## Owner Email
+
+Immediately notify the owner:
+
+Subject:
+
+**New Appointment Booked**
+
+Include:
+
+* Customer name
+* Phone
+* Email
+* Service
+* Date
+* Time
+* Duration
+* Notes
+
+---
+
+# Reminder Emails
+
+Automatically send reminders:
+
+* 24 hours before the appointment
+* 2 hours before the appointment
+
+Both the customer and the owner should receive reminders.
+
+---
+
+# Admin Dashboard
+
+Secure admin login.
+
+Dashboard should include:
+
+## Calendar View
+
+* Daily
+* Weekly
+* Monthly
+
+Display appointments visually.
+
+---
+
+## Appointment Management
+
+Display:
+
+* Customer
+* Phone
+* Email
+* Service
+* Date
+* Time
+* Duration
+* Status
+
+Actions:
+
+* View
+* Edit
+* Reschedule
+* Cancel
+* Mark as Completed
+
+---
+
+## Service Management
+
+The owner can:
+
+* Add services
+* Edit services
+* Delete services
+
+Modify:
+
+* Name
+* Price
+* Duration
+* Description
+* Image
+
+without changing code.
+
+---
+
+## Dashboard Statistics
+
+Display:
+
+* Today's appointments
+* Upcoming appointments
+* Total bookings this month
+* Most popular services
+
+---
+
+# Gallery
+
+Create a modern gallery for:
+
+* Hair
+* Brows
+* Lashes
+* Nails
+
+with animations and lightbox viewing.
+
+---
+
+# Testimonials
+
+Create an elegant testimonial carousel.
+
+---
+
+# Contact Page
+
+Display:
+
+### Phone Numbers
+
+Tanya: 067 134 4631
+
+Kathy: 084 821 0018
+
+### Address
+
+Caltex Garage
+Heideveld Road
+
+Include:
+
+* Google Maps embed
+* Call buttons
+* WhatsApp button
+* Email button
+
+---
+
+# Footer
+
+Include:
+
+* Home
+* About
+* Services
+* Gallery
+* Book Appointment
+* Contact
+* Social Media Links
+
+---
+
+# Database Structure
+
+Create tables for:
+
+## Services
+
+* id
+* name
+* description
+* price
+* duration
+* image
+
+## Appointments
+
+* id
+* customerName
+* email
+* phone
+* serviceId
+* startTime
+* endTime
+* notes
+* status
+
+## AdminUsers
+
+* id
+* name
+* email
+* password
+
+## BusinessSettings
+
+* openingHours
+* slotInterval
+* emailSettings
+
+---
+
+# Important Requirements
+
+* **No online payments**
+* **No shopping cart**
+* **No checkout**
+* **No Stripe integration**
+* Customers are only booking an appointment
+* The system must automatically calculate availability based on service duration
+* Double bookings must never be allowed
+* Both the customer and the owner must receive confirmation and reminder emails
+* The website should have a premium, luxury, mobile-friendly design inspired by the Kat's Beauty Bar branding.

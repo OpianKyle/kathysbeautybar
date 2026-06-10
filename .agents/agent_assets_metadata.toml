@@ -1,0 +1,32 @@
+uploads = []
+outputs = []
+
+[[generated]]
+id = "AuJS702-87ucRNjZPpFKX"
+uri = "file://artifacts/kats-beauty-bar/public/images/gallery-hair-1.png"
+type = "image"
+title = "Luxury salon hair styling"
+
+[[generated]]
+id = "dhs8PXOTspaeHne1Zgz8a"
+uri = "file://artifacts/kats-beauty-bar/public/images/gallery-brows-1.png"
+type = "image"
+title = "Beautiful perfectly shaped eyebrows"
+
+[[generated]]
+id = "DeS-VDxSh2laaoXQoE0bU"
+uri = "file://artifacts/kats-beauty-bar/public/images/gallery-lashes-1.png"
+type = "image"
+title = "Classic volume eyelash extensions"
+
+[[generated]]
+id = "YeoZ4ndAUMBz4C0ZtU74s"
+uri = "file://artifacts/kats-beauty-bar/public/images/gallery-nails-1.png"
+type = "image"
+title = "Elegant gel manicure"
+
+[[generated]]
+id = "I8vrnEP6AbBVaHnSQJk_Z"
+uri = "file://artifacts/kats-beauty-bar/public/images/hero-bg.png"
+type = "image"
+title = "Luxury salon interior"

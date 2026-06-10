@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "Kat's Beauty Bar"
+version = "1.0.0"
+id = "artifacts/kats-beauty-bar"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 23985
+
+[services.development]
+run = "pnpm --filter @workspace/kats-beauty-bar run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/kats-beauty-bar", "run", "build" ]
+publicDir = "artifacts/kats-beauty-bar/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "23985"
+BASE_PATH = "/"

@@ -1,22 +1,31 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Kat's Beauty Bar API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: services
+    description: Beauty services
+  - name: appointments
+    description: Appointment booking
+  - name: availability
+    description: Availability checks
+  - name: admin
+    description: Admin operations
+  - name: settings
+    description: Business settings
+
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,6 +33,308 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /services:
+    get:
+      operationId: listServices
+      tags: [services]
+      summary: List all services grouped by category
+      responses:
+        "200":
+          description: List of services
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Service"
+
+    post:
+      operationId: createService
+      tags: [admin]
+      summary: Create a new service (admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ServiceInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Service"
+
+  /services/{id}:
+    get:
+      operationId: getService
+      tags: [services]
+      summary: Get a single service
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Service
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Service"
+        "404":
+          description: Not found
+
+    patch:
+      operationId: updateService
+      tags: [admin]
+      summary: Update a service (admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ServiceUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Service"
+
+    delete:
+      operationId: deleteService
+      tags: [admin]
+      summary: Delete a service (admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /appointments:
+    get:
+      operationId: listAppointments
+      tags: [appointments]
+      summary: List appointments (admin)
+      parameters:
+        - name: date
+          in: query
+          schema:
+            type: string
+          description: Filter by date (YYYY-MM-DD)
+        - name: status
+          in: query
+          schema:
+            type: string
+          description: Filter by status
+      responses:
+        "200":
+          description: List of appointments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Appointment"
+
+    post:
+      operationId: createAppointment
+      tags: [appointments]
+      summary: Book an appointment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AppointmentInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Appointment"
+        "409":
+          description: Time slot not available
+
+  /appointments/{id}:
+    get:
+      operationId: getAppointment
+      tags: [appointments]
+      summary: Get appointment details
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Appointment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Appointment"
+
+    patch:
+      operationId: updateAppointment
+      tags: [admin]
+      summary: Update/reschedule appointment (admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AppointmentUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Appointment"
+
+    delete:
+      operationId: cancelAppointment
+      tags: [appointments]
+      summary: Cancel an appointment
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Cancelled
+
+  /availability:
+    get:
+      operationId: getAvailability
+      tags: [availability]
+      summary: Get available time slots for a date and service
+      parameters:
+        - name: date
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Date in YYYY-MM-DD format
+        - name: serviceId
+          in: query
+          required: true
+          schema:
+            type: integer
+          description: Service ID to check duration
+      responses:
+        "200":
+          description: Available slots
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AvailabilityResponse"
+
+  /admin/login:
+    post:
+      operationId: adminLogin
+      tags: [admin]
+      summary: Admin login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminLoginInput"
+      responses:
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginResult"
+        "401":
+          description: Invalid credentials
+
+  /admin/me:
+    get:
+      operationId: getAdminMe
+      tags: [admin]
+      summary: Get current admin user
+      responses:
+        "200":
+          description: Admin user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminUser"
+        "401":
+          description: Unauthorized
+
+  /admin/stats:
+    get:
+      operationId: getAdminStats
+      tags: [admin]
+      summary: Get dashboard statistics
+      responses:
+        "200":
+          description: Dashboard stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardStats"
+
+  /settings:
+    get:
+      operationId: getSettings
+      tags: [settings]
+      summary: Get business settings (opening hours, etc.)
+      responses:
+        "200":
+          description: Business settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BusinessSettings"
+
+    patch:
+      operationId: updateSettings
+      tags: [admin]
+      summary: Update business settings (admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BusinessSettingsUpdate"
+      responses:
+        "200":
+          description: Updated settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BusinessSettings"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +345,283 @@ components:
       required:
         - status
 
+    Service:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: string
+        price:
+          type: number
+        durationMinutes:
+          type: integer
+        category:
+          type: string
+        imageUrl:
+          type: ["string", "null"]
+        active:
+          type: boolean
+      required:
+        - id
+        - name
+        - description
+        - price
+        - durationMinutes
+        - category
+        - active
+
+    ServiceInput:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        price:
+          type: number
+        durationMinutes:
+          type: integer
+        category:
+          type: string
+        imageUrl:
+          type: ["string", "null"]
+      required:
+        - name
+        - description
+        - price
+        - durationMinutes
+        - category
+
+    ServiceUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        price:
+          type: number
+        durationMinutes:
+          type: integer
+        category:
+          type: string
+        imageUrl:
+          type: ["string", "null"]
+        active:
+          type: boolean
+
+    Appointment:
+      type: object
+      properties:
+        id:
+          type: integer
+        customerName:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        serviceId:
+          type: integer
+        serviceName:
+          type: string
+        startTime:
+          type: string
+          description: ISO 8601 datetime
+        endTime:
+          type: string
+          description: ISO 8601 datetime
+        durationMinutes:
+          type: integer
+        notes:
+          type: ["string", "null"]
+        status:
+          type: string
+          enum: [pending, confirmed, completed, cancelled]
+        createdAt:
+          type: string
+      required:
+        - id
+        - customerName
+        - email
+        - phone
+        - serviceId
+        - serviceName
+        - startTime
+        - endTime
+        - durationMinutes
+        - status
+        - createdAt
+
+    AppointmentInput:
+      type: object
+      properties:
+        customerName:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        serviceId:
+          type: integer
+        startTime:
+          type: string
+          description: ISO 8601 datetime
+        notes:
+          type: ["string", "null"]
+      required:
+        - customerName
+        - email
+        - phone
+        - serviceId
+        - startTime
+
+    AppointmentUpdate:
+      type: object
+      properties:
+        startTime:
+          type: string
+        status:
+          type: string
+          enum: [pending, confirmed, completed, cancelled]
+        notes:
+          type: ["string", "null"]
+
+    AvailabilityResponse:
+      type: object
+      properties:
+        date:
+          type: string
+        slots:
+          type: array
+          items:
+            $ref: "#/components/schemas/TimeSlot"
+        businessHours:
+          $ref: "#/components/schemas/DayHours"
+      required:
+        - date
+        - slots
+
+    TimeSlot:
+      type: object
+      properties:
+        time:
+          type: string
+          description: "HH:MM format"
+        available:
+          type: boolean
+        reason:
+          type: ["string", "null"]
+          description: Why unavailable (booked, closed, etc.)
+      required:
+        - time
+        - available
+
+    DayHours:
+      type: object
+      properties:
+        open:
+          type: boolean
+        openTime:
+          type: ["string", "null"]
+        closeTime:
+          type: ["string", "null"]
+      required:
+        - open
+
+    AdminLoginInput:
+      type: object
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+      required:
+        - email
+        - password
+
+    LoginResult:
+      type: object
+      properties:
+        token:
+          type: string
+        admin:
+          $ref: "#/components/schemas/AdminUser"
+      required:
+        - token
+        - admin
+
+    AdminUser:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+      required:
+        - id
+        - name
+        - email
+
+    DashboardStats:
+      type: object
+      properties:
+        todayAppointments:
+          type: integer
+        upcomingAppointments:
+          type: integer
+        monthlyBookings:
+          type: integer
+        popularServices:
+          type: array
+          items:
+            $ref: "#/components/schemas/ServicePopularity"
+      required:
+        - todayAppointments
+        - upcomingAppointments
+        - monthlyBookings
+        - popularServices
+
+    ServicePopularity:
+      type: object
+      properties:
+        serviceName:
+          type: string
+        bookingCount:
+          type: integer
+      required:
+        - serviceName
+        - bookingCount
+
+    BusinessSettings:
+      type: object
+      properties:
+        slotIntervalMinutes:
+          type: integer
+        ownerEmail:
+          type: string
+        openingHours:
+          type: object
+          additionalProperties:
+            $ref: "#/components/schemas/DayHours"
+      required:
+        - slotIntervalMinutes
+        - ownerEmail
+        - openingHours
+
+    BusinessSettingsUpdate:
+      type: object
+      properties:
+        slotIntervalMinutes:
+          type: integer
+        ownerEmail:
+          type: string
+        openingHours:
+          type: object
+          additionalProperties:
+            $ref: "#/components/schemas/DayHours"
