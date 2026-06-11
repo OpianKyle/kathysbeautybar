@@ -242,7 +242,7 @@ export default function Booking() {
                         mode="single"
                         selected={selectedDate}
                         onSelect={(d) => { setSelectedDate(d); setSelectedTime(null); }}
-                        className="rounded-xl border shadow-sm mx-auto"
+                        className="rounded-xl border shadow-sm w-full [--cell-size:2.75rem]"
                         disabled={(date) => date < new Date() || date.getDay() === 0}
                       />
                     </div>
