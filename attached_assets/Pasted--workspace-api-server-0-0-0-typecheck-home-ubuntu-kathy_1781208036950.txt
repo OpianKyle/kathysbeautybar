@@ -1,0 +1,66 @@
+> @workspace/api-server@0.0.0 typecheck /home/ubuntu/kathysbeautybar/artifacts/api-server
+> tsc -p tsconfig.json --noEmit
+
+src/routes/appointments.ts:74:29 - error TS2769: No overload matches this call.
+  Overload 1 of 2, '(sql: string, values?: ExecuteValues | undefined): Promise<[AppointmentRow[], FieldPacket[]]>', gave the following error.
+    Argument of type 'unknown[]' is not assignable to parameter of type 'ExecuteValues | undefined'.
+      Type 'unknown[]' is not assignable to type 'ExecuteValues[]'.
+        Type 'unknown' is not assignable to type 'ExecuteValues'.
+  Overload 2 of 2, '(options: QueryOptions, values?: ExecuteValues | undefined): Promise<[AppointmentRow[], FieldPacket[]]>', gave the following error.
+    Argument of type 'string' is not assignable to parameter of type 'QueryOptions'.
+
+74   const [rows] = await pool.execute<AppointmentRow[]>(
+                               ~~~~~~~
+
+
+src/routes/appointments.ts:326:16 - error TS2769: No overload matches this call.
+  Overload 1 of 2, '(sql: string, values?: ExecuteValues | undefined): Promise<[QueryResult, FieldPacket[]]>', gave the following error.
+    Argument of type 'unknown[]' is not assignable to parameter of type 'ExecuteValues | undefined'.
+      Type 'unknown[]' is not assignable to type 'ExecuteValues[]'.
+        Type 'unknown' is not assignable to type 'ExecuteValues'.
+  Overload 2 of 2, '(options: QueryOptions, values?: ExecuteValues | undefined): Promise<[QueryResult, FieldPacket[]]>', gave the following error.
+    Argument of type 'string' is not assignable to parameter of type 'QueryOptions'.
+
+326     await pool.execute(
+                   ~~~~~~~
+
+
+src/routes/services.ts:50:74 - error TS2339: Property 'active' does not exist on type '{ name: string; description: string; price: number; durationMinutes: number; category: string; imageUrl?: string | null | undefined; }'.
+
+50   const { name, description, price, durationMinutes, category, imageUrl, active } = parsed.data;
+                                                                            ~~~~~~
+
+src/routes/services.ts:118:31 - error TS2769: No overload matches this call.
+  Overload 1 of 2, '(sql: string, values?: ExecuteValues | undefined): Promise<[ResultSetHeader, FieldPacket[]]>', gave the following error.
+    Argument of type 'unknown[]' is not assignable to parameter of type 'ExecuteValues | undefined'.
+      Type 'unknown[]' is not assignable to type 'ExecuteValues[]'.
+        Type 'unknown' is not assignable to type 'ExecuteValues'.
+  Overload 2 of 2, '(options: QueryOptions, values?: ExecuteValues | undefined): Promise<[ResultSetHeader, FieldPacket[]]>', gave the following error.
+    Argument of type 'string' is not assignable to parameter of type 'QueryOptions'.
+
+118   const [result] = await pool.execute<ResultSetHeader>(
+                                  ~~~~~~~
+
+
+
+Found 4 errors in 2 files.
+
+Errors  Files
+     2  src/routes/appointments.ts:74
+     2  src/routes/services.ts:50
+/home/ubuntu/kathysbeautybar/artifacts/api-server:
+ ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL  @workspace/api-server@0.0.0 typecheck: `tsc -p tsconfig.json --noEmit`
+Exit status 1
+
+> @workspace/kats-beauty-bar@0.0.0 typecheck /home/ubuntu/kathysbeautybar/artifacts/kats-beauty-bar
+> tsc -p tsconfig.json --noEmit
+
+ ELIFECYCLE  Command failed with exit code 1.
+ ELIFECYCLE  Command failed with exit code 1.
+ubuntu@kaths-beauty-bar:~/kathysbeautybar$ git pull
+Updating b08928a..f18d4c6
+error: Your local changes to the following files would be overwritten by merge:
+        pnpm-lock.yaml
+Please commit your changes or stash them before you merge.
+Aborting
+ubuntu@kaths-beauty-bar:~/kathysbeautybar$
