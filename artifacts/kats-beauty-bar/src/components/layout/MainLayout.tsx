@@ -88,9 +88,8 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
             </div>
           </div>
           
-          <div className="mt-16 pt-8 border-t text-center text-sm text-muted-foreground flex flex-col sm:flex-row items-center justify-between">
+          <div className="mt-16 pt-8 border-t text-center text-sm text-muted-foreground">
             <p>&copy; {new Date().getFullYear()} Kat's Beauty Bar. All rights reserved.</p>
-            <Link href="/admin/login" className="hover:text-primary transition-colors mt-4 sm:mt-0">Admin Login</Link>
           </div>
         </div>
       </footer>
