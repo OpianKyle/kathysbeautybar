@@ -37,7 +37,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
 
           <div className="flex items-center gap-4">
             <Link href="/book">
-              <Button className="rounded-full px-6 font-medium tracking-wide">Book Appointment</Button>
+              <Button className="rounded-full px-6 font-medium tracking-wide hover:opacity-80 transition-opacity">Book Appointment</Button>
             </Link>
           </div>
         </div>
