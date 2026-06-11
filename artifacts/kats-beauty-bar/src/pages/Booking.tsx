@@ -158,7 +158,7 @@ export default function Booking() {
                       {Object.entries(groupedServices).map(([category, items]) => (
                         <div key={category}>
                           <div className="flex items-center gap-3 mb-4">
-                            <h3 className="font-serif text-lg text-primary whitespace-nowrap">{category}</h3>
+                            <h3 className="font-serif text-2xl text-primary whitespace-nowrap">{category}</h3>
                             <div className="h-px bg-border flex-1" />
                           </div>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
