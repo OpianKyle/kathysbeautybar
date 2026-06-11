@@ -99,7 +99,7 @@ router.patch("/services/:id", requireAdmin, async (req, res): Promise<void> => {
   }
 
   const updates: string[] = [];
-  const values: unknown[] = [];
+  const values: (string | number | null)[] = [];
 
   if (parsed.data.name !== undefined) { updates.push("name = ?"); values.push(parsed.data.name); }
   if (parsed.data.description !== undefined) { updates.push("description = ?"); values.push(parsed.data.description); }

@@ -58,7 +58,7 @@ router.get("/appointments", requireAdmin, async (req, res): Promise<void> => {
   }
 
   const conditions: string[] = [];
-  const values: unknown[] = [];
+  const values: (string | number | null)[] = [];
 
   if (parsed.data.date) {
     conditions.push("a.start_time >= ? AND a.start_time <= ?");
@@ -297,7 +297,7 @@ router.patch("/appointments/:id", requireAdmin, async (req, res): Promise<void> 
 
   const existing = existingRows[0];
   const updates: string[] = [];
-  const values: unknown[] = [];
+  const values: (string | number | null)[] = [];
 
   if (parsed.data.status) {
     updates.push("status = ?");

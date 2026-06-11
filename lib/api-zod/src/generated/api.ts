@@ -41,7 +41,8 @@ export const CreateServiceBody = zod.object({
   "price": zod.number(),
   "durationMinutes": zod.number(),
   "category": zod.string(),
-  "imageUrl": zod.string().nullish()
+  "imageUrl": zod.string().nullish(),
+  "active": zod.boolean().optional()
 })
 
 
