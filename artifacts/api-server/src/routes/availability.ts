@@ -1,6 +1,5 @@
 import { Router, type IRouter } from "express";
-import { db, appointmentsTable, servicesTable } from "@workspace/db";
-import { eq, and, gte, lt } from "drizzle-orm";
+import { pool, type DbAppointment, type DbService } from "../lib/db";
 import { GetAvailabilityQueryParams, GetAvailabilityResponse } from "@workspace/api-zod";
 import { loadSettings } from "./settings";
 
@@ -15,12 +14,12 @@ router.get("/availability", async (req, res): Promise<void> => {
 
   const { date, serviceId } = parsed.data;
 
-  // Load the service to get duration
-  const [service] = await db
-    .select()
-    .from(servicesTable)
-    .where(eq(servicesTable.id, serviceId));
+  const [serviceRows] = await pool.execute<DbService[]>(
+    "SELECT id, name, duration_minutes AS durationMinutes FROM services WHERE id = ?",
+    [serviceId],
+  );
 
+  const service = serviceRows[0];
   if (!service) {
     res.status(404).json({ error: "Service not found" });
     return;
@@ -32,7 +31,6 @@ router.get("/availability", async (req, res): Promise<void> => {
     { open: boolean; openTime: string | null; closeTime: string | null }
   >;
 
-  // Get day of week from date string (YYYY-MM-DD)
   const [year, month, day] = date.split("-").map(Number);
   const dateObj = new Date(year, month - 1, day);
   const dayNames = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
@@ -50,22 +48,13 @@ router.get("/availability", async (req, res): Promise<void> => {
     return;
   }
 
-  // Get all existing appointments for that day
-  const dayStart = new Date(`${date}T00:00:00`);
-  const dayEnd = new Date(`${date}T23:59:59`);
+  const [existingRows] = await pool.execute<DbAppointment[]>(
+    `SELECT start_time AS startTime, end_time AS endTime
+     FROM appointments
+     WHERE DATE(start_time) = ? AND status = 'confirmed'`,
+    [date],
+  );
 
-  const existingAppointments = await db
-    .select()
-    .from(appointmentsTable)
-    .where(
-      and(
-        gte(appointmentsTable.startTime, dayStart),
-        lt(appointmentsTable.startTime, dayEnd),
-        eq(appointmentsTable.status, "confirmed"),
-      ),
-    );
-
-  // Generate time slots
   const slots: { time: string; available: boolean; reason: string | null }[] = [];
   const intervalMinutes = settings.slotIntervalMinutes;
   const serviceDuration = service.durationMinutes;
@@ -84,15 +73,12 @@ router.get("/availability", async (req, res): Promise<void> => {
     const slotStart = new Date(`${date}T${timeStr}:00`);
     const slotEnd = new Date(slotStart.getTime() + serviceDuration * 60 * 1000);
 
-    // Check if this slot conflicts with any existing appointment
     let available = true;
     let reason: string | null = null;
 
-    for (const appt of existingAppointments) {
+    for (const appt of existingRows) {
       const apptStart = new Date(appt.startTime);
       const apptEnd = new Date(appt.endTime);
-
-      // Overlaps if: slotStart < apptEnd AND slotEnd > apptStart
       if (slotStart < apptEnd && slotEnd > apptStart) {
         available = false;
         reason = "booked";
@@ -100,7 +86,6 @@ router.get("/availability", async (req, res): Promise<void> => {
       }
     }
 
-    // Don't allow bookings in the past
     if (slotStart <= new Date()) {
       available = false;
       reason = "past";

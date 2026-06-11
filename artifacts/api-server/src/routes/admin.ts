@@ -1,7 +1,6 @@
 import { Router, type IRouter } from "express";
 import bcrypt from "bcryptjs";
-import { db, adminUsersTable, appointmentsTable, servicesTable } from "@workspace/db";
-import { eq, gte, lt, and, count, sql } from "drizzle-orm";
+import { pool, type DbAdminUser, type DbAppointment, type RowDataPacket } from "../lib/db";
 import {
   AdminLoginBody,
   AdminLoginResponse,
@@ -21,11 +20,12 @@ router.post("/admin/login", async (req, res): Promise<void> => {
 
   const { email, password } = parsed.data;
 
-  const [admin] = await db
-    .select()
-    .from(adminUsersTable)
-    .where(eq(adminUsersTable.email, email));
+  const [rows] = await pool.execute<DbAdminUser[]>(
+    "SELECT id, name, email, password_hash AS passwordHash, created_at AS createdAt FROM admin_users WHERE email = ?",
+    [email],
+  );
 
+  const admin = rows[0];
   if (!admin) {
     res.status(401).json({ error: "Invalid credentials" });
     return;
@@ -50,16 +50,17 @@ router.post("/admin/login", async (req, res): Promise<void> => {
 router.get("/admin/me", requireAdmin, async (req, res): Promise<void> => {
   const adminPayload = (req as any).admin as { id: number; email: string; name: string };
 
-  const [admin] = await db
-    .select()
-    .from(adminUsersTable)
-    .where(eq(adminUsersTable.id, adminPayload.id));
+  const [rows] = await pool.execute<DbAdminUser[]>(
+    "SELECT id, name, email, password_hash AS passwordHash, created_at AS createdAt FROM admin_users WHERE id = ?",
+    [adminPayload.id],
+  );
 
-  if (!admin) {
+  if (!rows[0]) {
     res.status(401).json({ error: "Admin not found" });
     return;
   }
 
+  const admin = rows[0];
   res.json(GetAdminMeResponse.parse({ id: admin.id, name: admin.name, email: admin.email }));
 });
 
@@ -70,55 +71,44 @@ router.get("/admin/stats", requireAdmin, async (_req, res): Promise<void> => {
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
   const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
 
-  const [todayResult] = await db
-    .select({ count: count() })
-    .from(appointmentsTable)
-    .where(
-      and(
-        gte(appointmentsTable.startTime, todayStart),
-        lt(appointmentsTable.startTime, todayEnd),
-        eq(appointmentsTable.status, "confirmed"),
-      ),
-    );
+  function toMysqlDatetime(d: Date) {
+    return d.toISOString().replace("T", " ").replace(/\.\d{3}Z$/, "");
+  }
 
-  const [upcomingResult] = await db
-    .select({ count: count() })
-    .from(appointmentsTable)
-    .where(
-      and(
-        gte(appointmentsTable.startTime, now),
-        eq(appointmentsTable.status, "confirmed"),
-      ),
-    );
+  interface CountRow extends RowDataPacket { count: number }
+  interface PopularRow extends RowDataPacket { serviceName: string; bookingCount: number }
 
-  const [monthlyResult] = await db
-    .select({ count: count() })
-    .from(appointmentsTable)
-    .where(
-      and(
-        gte(appointmentsTable.startTime, monthStart),
-        lt(appointmentsTable.startTime, monthEnd),
-      ),
-    );
+  const [[todayResult]] = await pool.execute<CountRow[]>(
+    "SELECT COUNT(*) AS count FROM appointments WHERE start_time >= ? AND start_time < ? AND status = 'confirmed'",
+    [toMysqlDatetime(todayStart), toMysqlDatetime(todayEnd)],
+  );
 
-  const popularServicesRaw = await db
-    .select({
-      serviceName: servicesTable.name,
-      bookingCount: count(appointmentsTable.id),
-    })
-    .from(appointmentsTable)
-    .leftJoin(servicesTable, eq(appointmentsTable.serviceId, servicesTable.id))
-    .groupBy(servicesTable.name)
-    .orderBy(sql`count(${appointmentsTable.id}) DESC`)
-    .limit(5);
+  const [[upcomingResult]] = await pool.execute<CountRow[]>(
+    "SELECT COUNT(*) AS count FROM appointments WHERE start_time >= ? AND status = 'confirmed'",
+    [toMysqlDatetime(now)],
+  );
+
+  const [[monthlyResult]] = await pool.execute<CountRow[]>(
+    "SELECT COUNT(*) AS count FROM appointments WHERE start_time >= ? AND start_time <= ?",
+    [toMysqlDatetime(monthStart), toMysqlDatetime(monthEnd)],
+  );
+
+  const [popularRows] = await pool.execute<PopularRow[]>(
+    `SELECT COALESCE(s.name, 'Unknown') AS serviceName, COUNT(a.id) AS bookingCount
+     FROM appointments a
+     LEFT JOIN services s ON a.service_id = s.id
+     GROUP BY s.name
+     ORDER BY bookingCount DESC
+     LIMIT 5`,
+  );
 
   const stats = {
     todayAppointments: todayResult?.count ?? 0,
     upcomingAppointments: upcomingResult?.count ?? 0,
     monthlyBookings: monthlyResult?.count ?? 0,
-    popularServices: popularServicesRaw.map((p) => ({
-      serviceName: p.serviceName || "Unknown",
-      bookingCount: p.bookingCount,
+    popularServices: popularRows.map((p) => ({
+      serviceName: p.serviceName,
+      bookingCount: Number(p.bookingCount),
     })),
   };
 

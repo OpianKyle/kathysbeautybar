@@ -1,6 +1,5 @@
 import { Router, type IRouter } from "express";
-import { db, businessSettingsTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { pool, type DbBusinessSetting } from "../lib/db";
 import { GetSettingsResponse, UpdateSettingsBody, UpdateSettingsResponse } from "@workspace/api-zod";
 import { requireAdmin } from "../lib/auth";
 
@@ -20,8 +19,10 @@ const DEFAULT_SETTINGS = {
   },
 };
 
-async function loadSettings() {
-  const rows = await db.select().from(businessSettingsTable);
+export async function loadSettings() {
+  const [rows] = await pool.execute<DbBusinessSetting[]>(
+    "SELECT `key`, value FROM business_settings",
+  );
   const map: Record<string, string> = {};
   for (const row of rows) {
     map[row.key] = row.value;
@@ -63,15 +64,14 @@ router.patch("/settings", requireAdmin, async (req, res): Promise<void> => {
   }
 
   for (const update of updates) {
-    await db
-      .insert(businessSettingsTable)
-      .values(update)
-      .onConflictDoUpdate({ target: businessSettingsTable.key, set: { value: update.value } });
+    await pool.execute(
+      "INSERT INTO business_settings (`key`, value) VALUES (?, ?) ON DUPLICATE KEY UPDATE value = VALUES(value)",
+      [update.key, update.value],
+    );
   }
 
   const settings = await loadSettings();
   res.json(UpdateSettingsResponse.parse(settings));
 });
 
-export { loadSettings };
 export default router;

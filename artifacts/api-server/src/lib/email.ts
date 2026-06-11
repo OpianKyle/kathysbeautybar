@@ -1,10 +1,10 @@
 import nodemailer from "nodemailer";
 import { logger } from "./logger";
 
-// Create a test transporter that logs emails when no SMTP is configured
 function createTransporter() {
   const host = process.env.SMTP_HOST;
   const port = process.env.SMTP_PORT ? Number(process.env.SMTP_PORT) : 587;
+  const secure = process.env.SMTP_SECURE === "true" || port === 465;
   const user = process.env.SMTP_USER;
   const pass = process.env.SMTP_PASS;
 
@@ -12,16 +12,36 @@ function createTransporter() {
     return nodemailer.createTransport({
       host,
       port,
-      secure: port === 465,
+      secure,
       auth: { user, pass },
     });
   }
 
-  // Fallback: log emails to console in development
-  return nodemailer.createTransport({
-    jsonTransport: true,
-  });
+  logger.warn("SMTP credentials not configured — emails will be logged to console only");
+  return nodemailer.createTransport({ jsonTransport: true });
 }
+
+export async function testSmtpConnection(): Promise<void> {
+  const host = process.env.SMTP_HOST;
+  const user = process.env.SMTP_USER;
+  const pass = process.env.SMTP_PASS;
+
+  if (!host || !user || !pass) {
+    logger.warn("SMTP not fully configured — skipping connection test");
+    return;
+  }
+
+  const transporter = createTransporter();
+  try {
+    await transporter.verify();
+    logger.info("SMTP connection successful");
+  } catch (err) {
+    logger.error({ err }, "SMTP connection FAILED — check SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS");
+    throw err;
+  }
+}
+
+const MAIL_FROM = process.env.MAIL_FROM || '"Kat\'s Beauty Bar" <appointment@katsbeautybar.co.za>';
 
 export interface AppointmentEmailData {
   customerName: string;
@@ -59,7 +79,7 @@ export async function sendCustomerConfirmation(
   const transporter = createTransporter();
 
   const customerMail = {
-    from: `"Kat's Beauty Bar" <${ownerEmail}>`,
+    from: MAIL_FROM,
     to: data.email,
     subject: "Your Appointment is Confirmed",
     html: `
@@ -92,7 +112,7 @@ export async function sendCustomerConfirmation(
   };
 
   const ownerMail = {
-    from: `"Kat's Beauty Bar Bookings" <${ownerEmail}>`,
+    from: MAIL_FROM,
     to: ownerEmail,
     subject: "New Appointment Booked",
     html: `
@@ -115,8 +135,10 @@ export async function sendCustomerConfirmation(
   try {
     const info1 = await transporter.sendMail(customerMail);
     const info2 = await transporter.sendMail(ownerMail);
-    logger.info({ messageId1: (info1 as any).messageId, messageId2: (info2 as any).messageId }, "Confirmation emails sent");
-    // In dev with jsonTransport, log the emails
+    logger.info(
+      { messageId1: (info1 as any).messageId, messageId2: (info2 as any).messageId },
+      "Confirmation emails sent",
+    );
     if ((info1 as any).envelope) {
       logger.info({ email: JSON.parse((info1 as any).message) }, "Customer confirmation email (dev)");
     }
@@ -133,7 +155,7 @@ export async function sendReminderEmails(
   const transporter = createTransporter();
 
   const customerMail = {
-    from: `"Kat's Beauty Bar" <${ownerEmail}>`,
+    from: MAIL_FROM,
     to: data.email,
     subject: `Appointment Reminder - ${hoursUntil} hour${hoursUntil > 1 ? "s" : ""} away`,
     html: `
@@ -159,7 +181,7 @@ export async function sendReminderEmails(
   };
 
   const ownerMail = {
-    from: `"Kat's Beauty Bar Bookings" <${ownerEmail}>`,
+    from: MAIL_FROM,
     to: ownerEmail,
     subject: `Reminder: ${data.customerName} - ${data.serviceName} in ${hoursUntil}h`,
     html: `

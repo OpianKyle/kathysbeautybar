@@ -1,13 +1,13 @@
 import app from "./app";
 import { logger } from "./lib/logger";
 import { startScheduler } from "./lib/scheduler";
+import { testDbConnection } from "./lib/db";
+import { testSmtpConnection } from "./lib/email";
 
 const rawPort = process.env["PORT"];
 
 if (!rawPort) {
-  throw new Error(
-    "PORT environment variable is required but was not provided.",
-  );
+  throw new Error("PORT environment variable is required but was not provided.");
 }
 
 const port = Number(rawPort);
@@ -16,12 +16,28 @@ if (Number.isNaN(port) || port <= 0) {
   throw new Error(`Invalid PORT value: "${rawPort}"`);
 }
 
-app.listen(port, (err) => {
-  if (err) {
-    logger.error({ err }, "Error listening on port");
+async function start() {
+  try {
+    await testDbConnection();
+  } catch (err) {
+    logger.error({ err }, "Database connection failed — server will not start");
     process.exit(1);
   }
 
-  logger.info({ port }, "Server listening");
-  startScheduler();
-});
+  try {
+    await testSmtpConnection();
+  } catch (err) {
+    logger.warn({ err }, "SMTP connection failed — emails will not be sent");
+  }
+
+  app.listen(port, (err) => {
+    if (err) {
+      logger.error({ err }, "Error listening on port");
+      process.exit(1);
+    }
+    logger.info({ port }, "Server listening");
+    startScheduler();
+  });
+}
+
+start();

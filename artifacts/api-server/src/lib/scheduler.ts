@@ -1,21 +1,24 @@
 import cron from "node-cron";
-import { db, appointmentsTable, servicesTable, businessSettingsTable } from "@workspace/db";
-import { eq, and, between } from "drizzle-orm";
+import { pool, type DbAppointment, type RowDataPacket } from "./db";
 import { sendReminderEmails } from "./email";
 import { logger } from "./logger";
 
 async function getOwnerEmail(): Promise<string> {
-  const [setting] = await db
-    .select()
-    .from(businessSettingsTable)
-    .where(eq(businessSettingsTable.key, "ownerEmail"));
-  return setting?.value || "owner@katbeautybar.co.za";
+  interface SettingRow extends RowDataPacket { value: string }
+  const [rows] = await pool.execute<SettingRow[]>(
+    "SELECT value FROM business_settings WHERE `key` = 'ownerEmail'",
+  );
+  return rows[0]?.value || "owner@katbeautybar.co.za";
+}
+
+interface ReminderRow extends DbAppointment {
+  serviceName: string;
+  durationMinutes: number;
 }
 
 async function sendReminders(): Promise<void> {
   const now = new Date();
 
-  // Check for appointments in 24 hours and 2 hours
   const windows = [
     { hours: 24, label: "24h" },
     { hours: 2, label: "2h" },
@@ -27,32 +30,33 @@ async function sendReminders(): Promise<void> {
     const targetStart = new Date(now.getTime() + window.hours * 60 * 60 * 1000 - 5 * 60 * 1000);
     const targetEnd = new Date(now.getTime() + window.hours * 60 * 60 * 1000 + 5 * 60 * 1000);
 
-    const upcoming = await db
-      .select({
-        appointment: appointmentsTable,
-        service: servicesTable,
-      })
-      .from(appointmentsTable)
-      .leftJoin(servicesTable, eq(appointmentsTable.serviceId, servicesTable.id))
-      .where(
-        and(
-          eq(appointmentsTable.status, "confirmed"),
-          between(appointmentsTable.startTime, targetStart, targetEnd),
-        ),
-      );
+    function toMysqlDatetime(d: Date) {
+      return d.toISOString().replace("T", " ").replace(/\.\d{3}Z$/, "");
+    }
 
-    for (const { appointment, service } of upcoming) {
-      if (!service) continue;
+    const [rows] = await pool.execute<ReminderRow[]>(
+      `SELECT a.id, a.customer_name AS customerName, a.email, a.phone,
+              a.service_id AS serviceId, a.start_time AS startTime, a.end_time AS endTime,
+              a.notes, a.status, a.created_at AS createdAt,
+              COALESCE(s.name, 'Unknown') AS serviceName,
+              COALESCE(s.duration_minutes, 0) AS durationMinutes
+       FROM appointments a
+       LEFT JOIN services s ON a.service_id = s.id
+       WHERE a.status = 'confirmed'
+         AND a.start_time BETWEEN ? AND ?`,
+      [toMysqlDatetime(targetStart), toMysqlDatetime(targetEnd)],
+    );
 
+    for (const row of rows) {
       await sendReminderEmails(
         {
-          customerName: appointment.customerName,
-          email: appointment.email,
-          phone: appointment.phone,
-          serviceName: service.name,
-          startTime: appointment.startTime,
-          durationMinutes: service.durationMinutes,
-          notes: appointment.notes,
+          customerName: row.customerName,
+          email: row.email,
+          phone: row.phone,
+          serviceName: row.serviceName,
+          startTime: new Date(row.startTime),
+          durationMinutes: row.durationMinutes,
+          notes: row.notes,
         },
         ownerEmail,
         window.hours,
@@ -62,7 +66,6 @@ async function sendReminders(): Promise<void> {
 }
 
 export function startScheduler(): void {
-  // Run every 5 minutes to check for upcoming appointments
   cron.schedule("*/5 * * * *", async () => {
     try {
       await sendReminders();

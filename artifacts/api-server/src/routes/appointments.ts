@@ -1,6 +1,5 @@
 import { Router, type IRouter } from "express";
-import { db, appointmentsTable, servicesTable } from "@workspace/db";
-import { eq, and, gte, lt, desc } from "drizzle-orm";
+import { pool, type DbAppointment, type DbService, type ResultSetHeader } from "../lib/db";
 import {
   ListAppointmentsQueryParams,
   ListAppointmentsResponse,
@@ -18,22 +17,35 @@ import { sendCustomerConfirmation } from "../lib/email";
 
 const router: IRouter = Router();
 
-function formatAppointment(appt: typeof appointmentsTable.$inferSelect, serviceName: string) {
+const APPT_SELECT = `
+  SELECT a.id, a.customer_name AS customerName, a.email, a.phone,
+         a.service_id AS serviceId, a.start_time AS startTime, a.end_time AS endTime,
+         a.notes, a.status, a.created_at AS createdAt,
+         COALESCE(s.name, 'Unknown Service') AS serviceName
+  FROM appointments a
+  LEFT JOIN services s ON a.service_id = s.id
+`;
+
+interface AppointmentRow extends DbAppointment {
+  serviceName: string;
+}
+
+function formatAppointment(row: AppointmentRow) {
   return {
-    id: appt.id,
-    customerName: appt.customerName,
-    email: appt.email,
-    phone: appt.phone,
-    serviceId: appt.serviceId,
-    serviceName,
-    startTime: appt.startTime.toISOString(),
-    endTime: appt.endTime.toISOString(),
+    id: row.id,
+    customerName: row.customerName,
+    email: row.email,
+    phone: row.phone,
+    serviceId: row.serviceId,
+    serviceName: row.serviceName,
+    startTime: row.startTime instanceof Date ? row.startTime.toISOString() : String(row.startTime),
+    endTime: row.endTime instanceof Date ? row.endTime.toISOString() : String(row.endTime),
     durationMinutes: Math.round(
-      (appt.endTime.getTime() - appt.startTime.getTime()) / 60000,
+      (new Date(row.endTime).getTime() - new Date(row.startTime).getTime()) / 60000,
     ),
-    notes: appt.notes,
-    status: appt.status,
-    createdAt: appt.createdAt.toISOString(),
+    notes: row.notes,
+    status: row.status,
+    createdAt: row.createdAt instanceof Date ? row.createdAt.toISOString() : String(row.createdAt),
   };
 }
 
@@ -44,40 +56,26 @@ router.get("/appointments", requireAdmin, async (req, res): Promise<void> => {
     return;
   }
 
-  const conditions = [];
+  const conditions: string[] = [];
+  const values: unknown[] = [];
 
   if (parsed.data.date) {
-    const date = parsed.data.date;
-    const dayStart = new Date(`${date}T00:00:00`);
-    const dayEnd = new Date(`${date}T23:59:59`);
-    conditions.push(gte(appointmentsTable.startTime, dayStart));
-    conditions.push(lt(appointmentsTable.startTime, dayEnd));
+    conditions.push("a.start_time >= ? AND a.start_time <= ?");
+    values.push(`${parsed.data.date} 00:00:00`, `${parsed.data.date} 23:59:59`);
   }
 
   if (parsed.data.status) {
-    conditions.push(
-      eq(
-        appointmentsTable.status,
-        parsed.data.status as "pending" | "confirmed" | "completed" | "cancelled",
-      ),
-    );
+    conditions.push("a.status = ?");
+    values.push(parsed.data.status);
   }
 
-  const appointments = await db
-    .select({
-      appointment: appointmentsTable,
-      service: servicesTable,
-    })
-    .from(appointmentsTable)
-    .leftJoin(servicesTable, eq(appointmentsTable.serviceId, servicesTable.id))
-    .where(conditions.length > 0 ? and(...conditions) : undefined)
-    .orderBy(desc(appointmentsTable.startTime));
-
-  const formatted = appointments.map(({ appointment, service }) =>
-    formatAppointment(appointment, service?.name || "Unknown Service"),
+  const where = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+  const [rows] = await pool.execute<AppointmentRow[]>(
+    `${APPT_SELECT} ${where} ORDER BY a.start_time DESC`,
+    values,
   );
 
-  res.json(ListAppointmentsResponse.parse(formatted));
+  res.json(ListAppointmentsResponse.parse(rows.map(formatAppointment)));
 });
 
 router.post("/appointments", async (req, res): Promise<void> => {
@@ -89,12 +87,12 @@ router.post("/appointments", async (req, res): Promise<void> => {
 
   const { customerName, email, phone, serviceId, startTime, notes } = parsed.data;
 
-  // Load the service
-  const [service] = await db
-    .select()
-    .from(servicesTable)
-    .where(eq(servicesTable.id, serviceId));
+  const [serviceRows] = await pool.execute<DbService[]>(
+    "SELECT id, name, description, price, duration_minutes AS durationMinutes, category, image_url AS imageUrl, active FROM services WHERE id = ?",
+    [serviceId],
+  );
 
+  const service = serviceRows[0];
   if (!service) {
     res.status(404).json({ error: "Service not found" });
     return;
@@ -103,23 +101,15 @@ router.post("/appointments", async (req, res): Promise<void> => {
   const start = new Date(startTime);
   const end = new Date(start.getTime() + service.durationMinutes * 60 * 1000);
 
-  // Check for conflicts
   const dateStr = start.toISOString().split("T")[0];
-  const dayStart = new Date(`${dateStr}T00:00:00`);
-  const dayEnd = new Date(`${dateStr}T23:59:59`);
 
-  const existingAppointments = await db
-    .select()
-    .from(appointmentsTable)
-    .where(
-      and(
-        gte(appointmentsTable.startTime, dayStart),
-        lt(appointmentsTable.startTime, dayEnd),
-        eq(appointmentsTable.status, "confirmed"),
-      ),
-    );
+  const [existing] = await pool.execute<DbAppointment[]>(
+    `SELECT id, start_time AS startTime, end_time AS endTime FROM appointments
+     WHERE DATE(start_time) = ? AND status = 'confirmed'`,
+    [dateStr],
+  );
 
-  for (const appt of existingAppointments) {
+  for (const appt of existing) {
     const apptStart = new Date(appt.startTime);
     const apptEnd = new Date(appt.endTime);
     if (start < apptEnd && end > apptStart) {
@@ -128,21 +118,20 @@ router.post("/appointments", async (req, res): Promise<void> => {
     }
   }
 
-  const [appointment] = await db
-    .insert(appointmentsTable)
-    .values({
-      customerName,
-      email,
-      phone,
-      serviceId,
-      startTime: start,
-      endTime: end,
-      notes: notes || null,
-      status: "confirmed",
-    })
-    .returning();
+  const startMysql = start.toISOString().replace("T", " ").replace(/\.\d{3}Z$/, "");
+  const endMysql = end.toISOString().replace("T", " ").replace(/\.\d{3}Z$/, "");
 
-  // Send confirmation emails asynchronously
+  const [result] = await pool.execute<ResultSetHeader>(
+    `INSERT INTO appointments (customer_name, email, phone, service_id, start_time, end_time, notes, status)
+     VALUES (?, ?, ?, ?, ?, ?, ?, 'confirmed')`,
+    [customerName, email, phone, serviceId, startMysql, endMysql, notes ?? null],
+  );
+
+  const [rows] = await pool.execute<AppointmentRow[]>(
+    `${APPT_SELECT} WHERE a.id = ?`,
+    [result.insertId],
+  );
+
   const settings = await loadSettings();
   sendCustomerConfirmation(
     {
@@ -157,11 +146,7 @@ router.post("/appointments", async (req, res): Promise<void> => {
     settings.ownerEmail,
   ).catch(() => {});
 
-  res.status(201).json(
-    GetAppointmentResponse.parse(
-      formatAppointment(appointment, service.name),
-    ),
-  );
+  res.status(201).json(GetAppointmentResponse.parse(formatAppointment(rows[0])));
 });
 
 router.get("/appointments/:id", requireAdmin, async (req, res): Promise<void> => {
@@ -172,22 +157,17 @@ router.get("/appointments/:id", requireAdmin, async (req, res): Promise<void> =>
     return;
   }
 
-  const [result] = await db
-    .select({ appointment: appointmentsTable, service: servicesTable })
-    .from(appointmentsTable)
-    .leftJoin(servicesTable, eq(appointmentsTable.serviceId, servicesTable.id))
-    .where(eq(appointmentsTable.id, params.data.id));
+  const [rows] = await pool.execute<AppointmentRow[]>(
+    `${APPT_SELECT} WHERE a.id = ?`,
+    [params.data.id],
+  );
 
-  if (!result) {
+  if (!rows[0]) {
     res.status(404).json({ error: "Appointment not found" });
     return;
   }
 
-  res.json(
-    GetAppointmentResponse.parse(
-      formatAppointment(result.appointment, result.service?.name || "Unknown"),
-    ),
-  );
+  res.json(GetAppointmentResponse.parse(formatAppointment(rows[0])));
 });
 
 router.patch("/appointments/:id", requireAdmin, async (req, res): Promise<void> => {
@@ -204,47 +184,56 @@ router.patch("/appointments/:id", requireAdmin, async (req, res): Promise<void> 
     return;
   }
 
-  // Load existing appointment
-  const [existing] = await db
-    .select({ appointment: appointmentsTable, service: servicesTable })
-    .from(appointmentsTable)
-    .leftJoin(servicesTable, eq(appointmentsTable.serviceId, servicesTable.id))
-    .where(eq(appointmentsTable.id, params.data.id));
+  const [existingRows] = await pool.execute<AppointmentRow[]>(
+    `${APPT_SELECT} WHERE a.id = ?`,
+    [params.data.id],
+  );
 
-  if (!existing) {
+  if (!existingRows[0]) {
     res.status(404).json({ error: "Appointment not found" });
     return;
   }
 
-  const updateData: Record<string, unknown> = {};
+  const existing = existingRows[0];
+  const updates: string[] = [];
+  const values: unknown[] = [];
 
   if (parsed.data.status) {
-    updateData.status = parsed.data.status;
+    updates.push("status = ?");
+    values.push(parsed.data.status);
   }
 
   if (parsed.data.notes !== undefined) {
-    updateData.notes = parsed.data.notes;
+    updates.push("notes = ?");
+    values.push(parsed.data.notes);
   }
 
   if (parsed.data.startTime) {
     const newStart = new Date(parsed.data.startTime);
     const durationMs =
-      existing.appointment.endTime.getTime() - existing.appointment.startTime.getTime();
-    updateData.startTime = newStart;
-    updateData.endTime = new Date(newStart.getTime() + durationMs);
+      new Date(existing.endTime).getTime() - new Date(existing.startTime).getTime();
+    const newEnd = new Date(newStart.getTime() + durationMs);
+    updates.push("start_time = ?", "end_time = ?");
+    values.push(
+      newStart.toISOString().replace("T", " ").replace(/\.\d{3}Z$/, ""),
+      newEnd.toISOString().replace("T", " ").replace(/\.\d{3}Z$/, ""),
+    );
   }
 
-  const [updated] = await db
-    .update(appointmentsTable)
-    .set(updateData)
-    .where(eq(appointmentsTable.id, params.data.id))
-    .returning();
+  if (updates.length > 0) {
+    values.push(params.data.id);
+    await pool.execute(
+      `UPDATE appointments SET ${updates.join(", ")} WHERE id = ?`,
+      values,
+    );
+  }
 
-  res.json(
-    UpdateAppointmentResponse.parse(
-      formatAppointment(updated, existing.service?.name || "Unknown"),
-    ),
+  const [updatedRows] = await pool.execute<AppointmentRow[]>(
+    `${APPT_SELECT} WHERE a.id = ?`,
+    [params.data.id],
   );
+
+  res.json(UpdateAppointmentResponse.parse(formatAppointment(updatedRows[0])));
 });
 
 router.delete("/appointments/:id", async (req, res): Promise<void> => {
@@ -255,10 +244,10 @@ router.delete("/appointments/:id", async (req, res): Promise<void> => {
     return;
   }
 
-  await db
-    .update(appointmentsTable)
-    .set({ status: "cancelled" })
-    .where(eq(appointmentsTable.id, params.data.id));
+  await pool.execute(
+    "UPDATE appointments SET status = 'cancelled' WHERE id = ?",
+    [params.data.id],
+  );
 
   res.sendStatus(204);
 });

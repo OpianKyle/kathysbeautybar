@@ -1,6 +1,5 @@
 import { Router, type IRouter } from "express";
-import { db, servicesTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { pool, type DbService, type ResultSetHeader } from "../lib/db";
 import {
   ListServicesResponse,
   GetServiceResponse,
@@ -15,18 +14,30 @@ import { requireAdmin } from "../lib/auth";
 
 const router: IRouter = Router();
 
-router.get("/services", async (_req, res): Promise<void> => {
-  const services = await db
-    .select()
-    .from(servicesTable)
-    .orderBy(servicesTable.category, servicesTable.name);
+const SERVICE_SELECT = `
+  SELECT id, name, description, CAST(price AS DECIMAL(10,2)) AS price,
+         duration_minutes AS durationMinutes, category, image_url AS imageUrl, active
+  FROM services
+`;
 
-  const mapped = services.map((s) => ({
-    ...s,
+function mapService(s: DbService) {
+  return {
+    id: s.id,
+    name: s.name,
+    description: s.description,
     price: Number(s.price),
-  }));
+    durationMinutes: s.durationMinutes,
+    category: s.category,
+    imageUrl: s.imageUrl,
+    active: !!s.active,
+  };
+}
 
-  res.json(ListServicesResponse.parse(mapped));
+router.get("/services", async (_req, res): Promise<void> => {
+  const [rows] = await pool.execute<DbService[]>(
+    `${SERVICE_SELECT} ORDER BY category, name`,
+  );
+  res.json(ListServicesResponse.parse(rows.map(mapService)));
 });
 
 router.post("/services", requireAdmin, async (req, res): Promise<void> => {
@@ -36,15 +47,20 @@ router.post("/services", requireAdmin, async (req, res): Promise<void> => {
     return;
   }
 
-  const [service] = await db
-    .insert(servicesTable)
-    .values({
-      ...parsed.data,
-      price: String(parsed.data.price),
-    })
-    .returning();
+  const { name, description, price, durationMinutes, category, imageUrl, active } = parsed.data;
 
-  res.status(201).json(GetServiceResponse.parse({ ...service, price: Number(service.price) }));
+  const [result] = await pool.execute<ResultSetHeader>(
+    `INSERT INTO services (name, description, price, duration_minutes, category, image_url, active)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    [name, description, price, durationMinutes, category, imageUrl ?? null, active !== false ? 1 : 0],
+  );
+
+  const [rows] = await pool.execute<DbService[]>(
+    `${SERVICE_SELECT} WHERE id = ?`,
+    [result.insertId],
+  );
+
+  res.status(201).json(GetServiceResponse.parse(mapService(rows[0])));
 });
 
 router.get("/services/:id", async (req, res): Promise<void> => {
@@ -55,17 +71,17 @@ router.get("/services/:id", async (req, res): Promise<void> => {
     return;
   }
 
-  const [service] = await db
-    .select()
-    .from(servicesTable)
-    .where(eq(servicesTable.id, params.data.id));
+  const [rows] = await pool.execute<DbService[]>(
+    `${SERVICE_SELECT} WHERE id = ?`,
+    [params.data.id],
+  );
 
-  if (!service) {
+  if (!rows[0]) {
     res.status(404).json({ error: "Service not found" });
     return;
   }
 
-  res.json(GetServiceResponse.parse({ ...service, price: Number(service.price) }));
+  res.json(GetServiceResponse.parse(mapService(rows[0])));
 });
 
 router.patch("/services/:id", requireAdmin, async (req, res): Promise<void> => {
@@ -82,23 +98,39 @@ router.patch("/services/:id", requireAdmin, async (req, res): Promise<void> => {
     return;
   }
 
-  const updateData: Record<string, unknown> = { ...parsed.data };
-  if (parsed.data.price !== undefined) {
-    updateData.price = String(parsed.data.price);
+  const updates: string[] = [];
+  const values: unknown[] = [];
+
+  if (parsed.data.name !== undefined) { updates.push("name = ?"); values.push(parsed.data.name); }
+  if (parsed.data.description !== undefined) { updates.push("description = ?"); values.push(parsed.data.description); }
+  if (parsed.data.price !== undefined) { updates.push("price = ?"); values.push(parsed.data.price); }
+  if (parsed.data.durationMinutes !== undefined) { updates.push("duration_minutes = ?"); values.push(parsed.data.durationMinutes); }
+  if (parsed.data.category !== undefined) { updates.push("category = ?"); values.push(parsed.data.category); }
+  if (parsed.data.imageUrl !== undefined) { updates.push("image_url = ?"); values.push(parsed.data.imageUrl); }
+  if (parsed.data.active !== undefined) { updates.push("active = ?"); values.push(parsed.data.active ? 1 : 0); }
+
+  if (updates.length === 0) {
+    res.status(400).json({ error: "No fields to update" });
+    return;
   }
 
-  const [service] = await db
-    .update(servicesTable)
-    .set(updateData)
-    .where(eq(servicesTable.id, params.data.id))
-    .returning();
+  values.push(params.data.id);
+  const [result] = await pool.execute<ResultSetHeader>(
+    `UPDATE services SET ${updates.join(", ")} WHERE id = ?`,
+    values,
+  );
 
-  if (!service) {
+  if (result.affectedRows === 0) {
     res.status(404).json({ error: "Service not found" });
     return;
   }
 
-  res.json(UpdateServiceResponse.parse({ ...service, price: Number(service.price) }));
+  const [rows] = await pool.execute<DbService[]>(
+    `${SERVICE_SELECT} WHERE id = ?`,
+    [params.data.id],
+  );
+
+  res.json(UpdateServiceResponse.parse(mapService(rows[0])));
 });
 
 router.delete("/services/:id", requireAdmin, async (req, res): Promise<void> => {
@@ -109,7 +141,7 @@ router.delete("/services/:id", requireAdmin, async (req, res): Promise<void> => 
     return;
   }
 
-  await db.delete(servicesTable).where(eq(servicesTable.id, params.data.id));
+  await pool.execute(`DELETE FROM services WHERE id = ?`, [params.data.id]);
   res.sendStatus(204);
 });
 
