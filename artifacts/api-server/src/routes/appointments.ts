@@ -1,4 +1,5 @@
 import { Router, type IRouter } from "express";
+import { z } from "zod";
 import { pool, type DbAppointment, type DbService, type ResultSetHeader } from "../lib/db";
 import {
   ListAppointmentsQueryParams,
@@ -13,7 +14,7 @@ import {
 } from "@workspace/api-zod";
 import { requireAdmin } from "../lib/auth";
 import { loadSettings } from "./settings";
-import { sendCustomerConfirmation } from "../lib/email";
+import { sendBookingConfirmation } from "../lib/email";
 
 const router: IRouter = Router();
 
@@ -133,20 +134,120 @@ router.post("/appointments", async (req, res): Promise<void> => {
   );
 
   const settings = await loadSettings();
-  sendCustomerConfirmation(
+  sendBookingConfirmation(
     {
       customerName,
       email,
       phone,
-      serviceName: service.name,
-      startTime: start,
-      durationMinutes: service.durationMinutes,
       notes,
+      services: [
+        {
+          name: service.name,
+          startTime: start,
+          durationMinutes: service.durationMinutes,
+          price: Number(service.price),
+        },
+      ],
     },
     settings.ownerEmail,
   ).catch(() => {});
 
   res.status(201).json(GetAppointmentResponse.parse(formatAppointment(rows[0])));
+});
+
+router.post("/appointments/batch", async (req, res): Promise<void> => {
+  const BatchBody = z.object({
+    customerName: z.string().min(1),
+    email: z.string().email(),
+    phone: z.string().min(1),
+    notes: z.string().optional(),
+    services: z.array(
+      z.object({
+        serviceId: z.number().int().positive(),
+        startTime: z.string(),
+      }),
+    ).min(1),
+  });
+
+  const parsed = BatchBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+
+  const { customerName, email, phone, notes, services: serviceSlots } = parsed.data;
+
+  const serviceIds = serviceSlots.map((s) => s.serviceId);
+  const placeholders = serviceIds.map(() => "?").join(", ");
+  const [serviceRows] = await pool.execute<DbService[]>(
+    `SELECT id, name, description, price, duration_minutes AS durationMinutes, category, image_url AS imageUrl, active FROM services WHERE id IN (${placeholders})`,
+    serviceIds,
+  );
+
+  const serviceMap = new Map(serviceRows.map((s) => [s.id, s]));
+
+  for (const slot of serviceSlots) {
+    if (!serviceMap.has(slot.serviceId)) {
+      res.status(404).json({ error: `Service ${slot.serviceId} not found` });
+      return;
+    }
+  }
+
+  const dateStr = new Date(serviceSlots[0].startTime).toISOString().split("T")[0];
+  const [existing] = await pool.execute<DbAppointment[]>(
+    `SELECT id, start_time AS startTime, end_time AS endTime FROM appointments WHERE DATE(start_time) = ? AND status = 'confirmed'`,
+    [dateStr],
+  );
+
+  const insertedIds: number[] = [];
+  const emailServiceItems: { name: string; startTime: Date; durationMinutes: number; price: number }[] = [];
+
+  for (const slot of serviceSlots) {
+    const service = serviceMap.get(slot.serviceId)!;
+    const start = new Date(slot.startTime);
+    const end = new Date(start.getTime() + service.durationMinutes * 60 * 1000);
+
+    for (const appt of existing) {
+      const apptStart = new Date(appt.startTime);
+      const apptEnd = new Date(appt.endTime);
+      if (start < apptEnd && end > apptStart) {
+        res.status(409).json({ error: `Time slot ${slot.startTime} is already booked` });
+        return;
+      }
+    }
+
+    const startMysql = start.toISOString().replace("T", " ").replace(/\.\d{3}Z$/, "");
+    const endMysql = end.toISOString().replace("T", " ").replace(/\.\d{3}Z$/, "");
+
+    const [result] = await pool.execute<ResultSetHeader>(
+      `INSERT INTO appointments (customer_name, email, phone, service_id, start_time, end_time, notes, status) VALUES (?, ?, ?, ?, ?, ?, ?, 'confirmed')`,
+      [customerName, email, phone, slot.serviceId, startMysql, endMysql, notes ?? null],
+    );
+    insertedIds.push(result.insertId);
+
+    existing.push({ id: result.insertId, startTime: start, endTime: end } as DbAppointment);
+
+    emailServiceItems.push({
+      name: service.name,
+      startTime: start,
+      durationMinutes: service.durationMinutes,
+      price: Number(service.price),
+    });
+  }
+
+  const settings = await loadSettings();
+  sendBookingConfirmation(
+    { customerName, email, phone, notes, services: emailServiceItems },
+    settings.ownerEmail,
+  ).catch(() => {});
+
+  const idPlaceholders = insertedIds.map(() => "?").join(", ");
+  const [rows] = await pool.execute<AppointmentRow[]>(
+    `${APPT_SELECT} WHERE a.id IN (${idPlaceholders})`,
+    insertedIds,
+  );
+
+  res.status(201).json(rows.map(formatAppointment));
 });
 
 router.get("/appointments/:id", requireAdmin, async (req, res): Promise<void> => {

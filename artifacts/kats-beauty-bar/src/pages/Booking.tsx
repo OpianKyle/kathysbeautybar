@@ -7,8 +7,7 @@ import { format } from "date-fns";
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 
-import { useListServices, useCreateAppointment } from "@workspace/api-client-react";
-import { customFetch } from "@workspace/api-client-react";
+import { useListServices, customFetch } from "@workspace/api-client-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -40,7 +39,6 @@ export default function Booking() {
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
 
   const { data: services, isLoading: servicesLoading } = useListServices();
-  const createAppointment = useCreateAppointment();
 
   const selectedServices = services?.filter(s => selectedServiceIds.includes(s.id)) ?? [];
   const totalDuration = selectedServices.reduce((sum, s) => sum + s.durationMinutes, 0);
@@ -70,6 +68,8 @@ export default function Booking() {
     setSelectedTime(null);
   }
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     if (selectedServiceIds.length === 0 || !selectedDate || !selectedTime) return;
 
@@ -77,18 +77,21 @@ export default function Booking() {
     let currentMinutes =
       parseInt(selectedTime.split(":")[0]) * 60 + parseInt(selectedTime.split(":")[1]);
 
+    const serviceSlots = selectedServices.map((service) => {
+      const startHH = String(Math.floor(currentMinutes / 60)).padStart(2, "0");
+      const startMM = String(currentMinutes % 60).padStart(2, "0");
+      const startTime = `${dateStr}T${startHH}:${startMM}:00`;
+      currentMinutes += service.durationMinutes;
+      return { serviceId: service.id, startTime };
+    });
+
+    setIsSubmitting(true);
     try {
-      for (const service of selectedServices) {
-        const startHH = String(Math.floor(currentMinutes / 60)).padStart(2, "0");
-        const startMM = String(currentMinutes % 60).padStart(2, "0");
-        const startTime = `${dateStr}T${startHH}:${startMM}:00`;
-
-        await createAppointment.mutateAsync({
-          data: { ...values, serviceId: service.id, startTime },
-        });
-
-        currentMinutes += service.durationMinutes;
-      }
+      await customFetch("/api/appointments/batch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...values, services: serviceSlots }),
+      });
       setStep(5);
     } catch {
       toast({
@@ -96,6 +99,8 @@ export default function Booking() {
         description: "There was an error booking your appointment. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -385,10 +390,10 @@ export default function Booking() {
                       <div className="flex justify-end pt-4">
                         <Button
                           type="submit"
-                          disabled={createAppointment.isPending}
+                          disabled={isSubmitting}
                           className="rounded-full px-8"
                         >
-                          {createAppointment.isPending ? "Confirming..." : `Confirm ${selectedServiceIds.length > 1 ? selectedServiceIds.length + " " : ""}Booking${selectedServiceIds.length > 1 ? "s" : ""}`}
+                          {isSubmitting ? "Confirming..." : `Confirm ${selectedServiceIds.length > 1 ? selectedServiceIds.length + " " : ""}Booking${selectedServiceIds.length > 1 ? "s" : ""}`}
                         </Button>
                       </div>
                     </form>
