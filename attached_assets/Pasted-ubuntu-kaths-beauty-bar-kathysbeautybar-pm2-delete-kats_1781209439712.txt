@@ -1,0 +1,45 @@
+ubuntu@kaths-beauty-bar:~/kathysbeautybar$ pm2 delete kats-api
+pm2 save
+[PM2] Applying action deleteProcessId on app [kats-api](ids: [ 0 ])
+[PM2] [kats-api](0) ✓
+┌────┬────────────────────┬──────────┬──────┬───────────┬──────────┬──────────┐
+│ id │ name               │ mode     │ ↺    │ status    │ cpu      │ memory   │
+├────┼────────────────────┼──────────┼──────┼───────────┼──────────┼──────────┤
+│ 1  │ katsbeautybar      │ fork     │ 10   │ online    │ 26.1%    │ 78.6mb   │
+└────┴────────────────────┴──────────┴──────┴───────────┴──────────┴──────────┘
+[PM2] Saving current process list...
+[PM2] Successfully saved in /home/ubuntu/.pm2/dump.pm2
+ubuntu@kaths-beauty-bar:~/kathysbeautybar$ sudo nginx -t && sudo systemctl reload nginx
+nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
+nginx: configuration file /etc/nginx/nginx.conf test is successful
+ubuntu@kaths-beauty-bar:~/kathysbeautybar$ # Check if the files exist
+ls /home/ubuntu/kathysbeautybar/artifacts/kats-beauty-bar/dist/public
+
+# Fix permissions so nginx can read them
+chmod -R 755 /home/ubuntu/kathysbeautybar
+chmod -R 755 /home/ubuntu/kathysbeautybar/artifacts/kats-beauty-bar/dist/public
+
+# Check nginx error log for the exact cause
+sudo tail -20 /var/log/nginx/error.log
+assets  favicon.svg  images  index.html  opengraph.jpg  robots.txt
+2026/06/11 20:22:41 [crit] 11199#11199: *184 stat() "/home/ubuntu/kathysbeautybar/artifacts/kats-beauty-bar/dist/public/index.html" failed (13: Permission denied), client: 102.39.215.42, server: katsbeautybar.co.za, request: "GET /favicon.ico HTTP/1.1", host: "www.katsbeautybar.co.za", referrer: "https://www.katsbeautybar.co.za/"
+2026/06/11 20:22:41 [crit] 11199#11199: *184 stat() "/home/ubuntu/kathysbeautybar/artifacts/kats-beauty-bar/dist/public/index.html" failed (13: Permission denied), client: 102.39.215.42, server: katsbeautybar.co.za, request: "GET /favicon.ico HTTP/1.1", host: "www.katsbeautybar.co.za", referrer: "https://www.katsbeautybar.co.za/"
+2026/06/11 20:22:41 [crit] 11199#11199: *184 stat() "/home/ubuntu/kathysbeautybar/artifacts/kats-beauty-bar/dist/public/index.html" failed (13: Permission denied), client: 102.39.215.42, server: katsbeautybar.co.za, request: "GET /favicon.ico HTTP/1.1", host: "www.katsbeautybar.co.za", referrer: "https://www.katsbeautybar.co.za/"
+2026/06/11 20:22:41 [crit] 11199#11199: *184 stat() "/home/ubuntu/kathysbeautybar/artifacts/kats-beauty-bar/dist/public/index.html" failed (13: Permission denied), client: 102.39.215.42, server: katsbeautybar.co.za, request: "GET /favicon.ico HTTP/1.1", host: "www.katsbeautybar.co.za", referrer: "https://www.katsbeautybar.co.za/"
+2026/06/11 20:22:41 [crit] 11199#11199: *184 stat() "/home/ubuntu/kathysbeautybar/artifacts/kats-beauty-bar/dist/public/index.html" failed (13: Permission denied), client: 102.39.215.42, server: katsbeautybar.co.za, request: "GET /favicon.ico HTTP/1.1", host: "www.katsbeautybar.co.za", referrer: "https://www.katsbeautybar.co.za/"
+2026/06/11 20:22:41 [crit] 11199#11199: *184 stat() "/home/ubuntu/kathysbeautybar/artifacts/kats-beauty-bar/dist/public/index.html" failed (13: Permission denied), client: 102.39.215.42, server: katsbeautybar.co.za, request: "GET /favicon.ico HTTP/1.1", host: "www.katsbeautybar.co.za", referrer: "https://www.katsbeautybar.co.za/"
+2026/06/11 20:22:41 [crit] 11199#11199: *184 stat() "/home/ubuntu/kathysbeautybar/artifacts/kats-beauty-bar/dist/public/index.html" failed (13: Permission denied), client: 102.39.215.42, server: katsbeautybar.co.za, request: "GET /favicon.ico HTTP/1.1", host: "www.katsbeautybar.co.za", referrer: "https://www.katsbeautybar.co.za/"
+2026/06/11 20:22:41 [crit] 11199#11199: *184 stat() "/home/ubuntu/kathysbeautybar/artifacts/kats-beauty-bar/dist/public/index.html" failed (13: Permission denied), client: 102.39.215.42, server: katsbeautybar.co.za, request: "GET /favicon.ico HTTP/1.1", host: "www.katsbeautybar.co.za", referrer: "https://www.katsbeautybar.co.za/"
+2026/06/11 20:22:41 [crit] 11199#11199: *184 stat() "/home/ubuntu/kathysbeautybar/artifacts/kats-beauty-bar/dist/public/index.html" failed (13: Permission denied), client: 102.39.215.42, server: katsbeautybar.co.za, request: "GET /favicon.ico HTTP/1.1", host: "www.katsbeautybar.co.za", referrer: "https://www.katsbeautybar.co.za/"
+2026/06/11 20:22:41 [crit] 11199#11199: *184 stat() "/home/ubuntu/kathysbeautybar/artifacts/kats-beauty-bar/dist/public/index.html" failed (13: Permission denied), client: 102.39.215.42, server: katsbeautybar.co.za, request: "GET /favicon.ico HTTP/1.1", host: "www.katsbeautybar.co.za", referrer: "https://www.katsbeautybar.co.za/"
+2026/06/11 20:22:41 [crit] 11199#11199: *184 stat() "/home/ubuntu/kathysbeautybar/artifacts/kats-beauty-bar/dist/public/index.html" failed (13: Permission denied), client: 102.39.215.42, server: katsbeautybar.co.za, request: "GET /favicon.ico HTTP/1.1", host: "www.katsbeautybar.co.za", referrer: "https://www.katsbeautybar.co.za/"
+2026/06/11 20:22:41 [crit] 11199#11199: *184 stat() "/home/ubuntu/kathysbeautybar/artifacts/kats-beauty-bar/dist/public/index.html" failed (13: Permission denied), client: 102.39.215.42, server: katsbeautybar.co.za, request: "GET /favicon.ico HTTP/1.1", host: "www.katsbeautybar.co.za", referrer: "https://www.katsbeautybar.co.za/"
+2026/06/11 20:22:41 [crit] 11199#11199: *184 stat() "/home/ubuntu/kathysbeautybar/artifacts/kats-beauty-bar/dist/public/index.html" failed (13: Permission denied), client: 102.39.215.42, server: katsbeautybar.co.za, request: "GET /favicon.ico HTTP/1.1", host: "www.katsbeautybar.co.za", referrer: "https://www.katsbeautybar.co.za/"
+2026/06/11 20:22:41 [crit] 11199#11199: *184 stat() "/home/ubuntu/kathysbeautybar/artifacts/kats-beauty-bar/dist/public/index.html" failed (13: Permission denied), client: 102.39.215.42, server: katsbeautybar.co.za, request: "GET /favicon.ico HTTP/1.1", host: "www.katsbeautybar.co.za", referrer: "https://www.katsbeautybar.co.za/"
+2026/06/11 20:22:41 [crit] 11199#11199: *184 stat() "/home/ubuntu/kathysbeautybar/artifacts/kats-beauty-bar/dist/public/index.html" failed (13: Permission denied), client: 102.39.215.42, server: katsbeautybar.co.za, request: "GET /favicon.ico HTTP/1.1", host: "www.katsbeautybar.co.za", referrer: "https://www.katsbeautybar.co.za/"
+2026/06/11 20:22:41 [crit] 11199#11199: *184 stat() "/home/ubuntu/kathysbeautybar/artifacts/kats-beauty-bar/dist/public/index.html" failed (13: Permission denied), client: 102.39.215.42, server: katsbeautybar.co.za, request: "GET /favicon.ico HTTP/1.1", host: "www.katsbeautybar.co.za", referrer: "https://www.katsbeautybar.co.za/"
+2026/06/11 20:22:41 [crit] 11199#11199: *184 stat() "/home/ubuntu/kathysbeautybar/artifacts/kats-beauty-bar/dist/public/index.html" failed (13: Permission denied), client: 102.39.215.42, server: katsbeautybar.co.za, request: "GET /favicon.ico HTTP/1.1", host: "www.katsbeautybar.co.za", referrer: "https://www.katsbeautybar.co.za/"
+2026/06/11 20:22:41 [crit] 11199#11199: *184 stat() "/home/ubuntu/kathysbeautybar/artifacts/kats-beauty-bar/dist/public/index.html" failed (13: Permission denied), client: 102.39.215.42, server: katsbeautybar.co.za, request: "GET /favicon.ico HTTP/1.1", host: "www.katsbeautybar.co.za", referrer: "https://www.katsbeautybar.co.za/"
+2026/06/11 20:22:41 [crit] 11199#11199: *184 stat() "/home/ubuntu/kathysbeautybar/artifacts/kats-beauty-bar/dist/public/index.html" failed (13: Permission denied), client: 102.39.215.42, server: katsbeautybar.co.za, request: "GET /favicon.ico HTTP/1.1", host: "www.katsbeautybar.co.za", referrer: "https://www.katsbeautybar.co.za/"
+2026/06/11 20:22:41 [error] 11199#11199: *184 rewrite or internal redirection cycle while internally redirecting to "/index.html", client: 102.39.215.42, server: katsbeautybar.co.za, request: "GET /favicon.ico HTTP/1.1", host: "www.katsbeautybar.co.za", referrer: "https://www.katsbeautybar.co.za/"
+ubuntu@kaths-beauty-bar:~/kathysbeautybar$
