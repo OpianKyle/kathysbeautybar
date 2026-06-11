@@ -9,28 +9,6 @@ args = ["pnpm", "store", "prune"]
 env = { "CI" = "true" }
 
 [workflows]
-runButton = "Project"
-
-[[workflows.workflow]]
-name = "Project"
-mode = "parallel"
-author = "agent"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
-args = "Kats Beauty Bar"
-
-[[workflows.workflow]]
-name = "Kats Beauty Bar"
-author = "agent"
-
-[workflows.workflow.metadata]
-outputType = "webview"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "PORT=8080 pnpm --filter @workspace/api-server run dev & PORT=23985 BASE_PATH=/ pnpm --filter @workspace/kats-beauty-bar run dev"
-waitForPort = 23985
 
 [agent]
 stack = "PNPM_WORKSPACE"
