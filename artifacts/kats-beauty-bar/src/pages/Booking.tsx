@@ -220,7 +220,7 @@ export default function Booking() {
                     <Button
                       onClick={() => setStep(2)}
                       disabled={selectedServiceIds.length === 0}
-                      className="rounded-full px-8"
+                      className="rounded-full px-8 cursor-pointer hover:opacity-80 transition-opacity"
                     >
                       Continue
                     </Button>
@@ -288,7 +288,7 @@ export default function Booking() {
                     <Button
                       onClick={() => setStep(3)}
                       disabled={!selectedDate || !selectedTime}
-                      className="rounded-full px-8"
+                      className="rounded-full px-8 cursor-pointer hover:opacity-80 transition-opacity"
                     >
                       Continue
                     </Button>
