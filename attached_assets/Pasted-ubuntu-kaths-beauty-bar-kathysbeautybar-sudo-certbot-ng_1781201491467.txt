@@ -1,0 +1,37 @@
+ubuntu@kaths-beauty-bar:~/kathysbeautybar$ sudo certbot --nginx -d katsbeautybar.co.za -d www.katsbeautybar.co.za
+Saving debug log to /var/log/letsencrypt/letsencrypt.log
+Requesting a certificate for katsbeautybar.co.za and www.katsbeautybar.co.za
+
+Successfully received certificate.
+Certificate is saved at: /etc/letsencrypt/live/katsbeautybar.co.za/fullchain.pem
+Key is saved at:         /etc/letsencrypt/live/katsbeautybar.co.za/privkey.pem
+This certificate expires on 2026-09-09.
+These files will be updated when the certificate renews.
+Certbot has set up a scheduled task to automatically renew this certificate in the background.
+
+Deploying certificate
+Successfully deployed certificate for katsbeautybar.co.za to /etc/nginx/sites-enabled/katsbeautybar
+Successfully deployed certificate for www.katsbeautybar.co.za to /etc/nginx/sites-enabled/katsbeautybar
+Congratulations! You have successfully enabled HTTPS on https://katsbeautybar.co.za and https://www.katsbeautybar.co.za
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+If you like Certbot, please consider supporting our work by:
+ * Donating to ISRG / Let's Encrypt:   https://letsencrypt.org/donate
+ * Donating to EFF:                    https://eff.org/donate-le
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+ubuntu@kaths-beauty-bar:~/kathysbeautybar$ sudo systemctl status nginx
+● nginx.service - A high performance web server and a reverse proxy server
+     Loaded: loaded (/lib/systemd/system/nginx.service; enabled; vendor preset:>
+     Active: active (running) since Thu 2026-06-11 18:04:58 UTC; 5min ago
+       Docs: man:nginx(8)
+   Main PID: 3863 (nginx)
+      Tasks: 2 (limit: 1098)
+     Memory: 3.7M
+        CPU: 105ms
+     CGroup: /system.slice/nginx.service
+             ├─3863 "nginx: master process /usr/sbin/nginx -g daemon on; master>
+             └─5515 "nginx: worker process" "" "" "" "" "" "" "" "" "" "" "" "">
+
+Jun 11 18:04:58 kaths-beauty-bar systemd[1]: Starting A high performance web se>
+Jun 11 18:04:58 kaths-beauty-bar systemd[1]: Started A high performance web ser>
+lines 1-14/14 (END)
