@@ -14,6 +14,9 @@ router.get("/availability", async (req, res): Promise<void> => {
 
   const { date, serviceId } = parsed.data;
 
+  const rawDuration = req.query.durationMinutes;
+  const durationOverride = rawDuration !== undefined ? Number(rawDuration) : null;
+
   const [serviceRows] = await pool.execute<DbService[]>(
     "SELECT id, name, duration_minutes AS durationMinutes FROM services WHERE id = ?",
     [serviceId],
@@ -57,7 +60,7 @@ router.get("/availability", async (req, res): Promise<void> => {
 
   const slots: { time: string; available: boolean; reason: string | null }[] = [];
   const intervalMinutes = settings.slotIntervalMinutes;
-  const serviceDuration = service.durationMinutes;
+  const serviceDuration = (durationOverride && durationOverride > 0) ? durationOverride : service.durationMinutes;
 
   const [openHour, openMin] = dayHours.openTime.split(":").map(Number);
   const [closeHour, closeMin] = dayHours.closeTime.split(":").map(Number);
