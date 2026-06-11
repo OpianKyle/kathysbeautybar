@@ -127,23 +127,39 @@ export default function Booking() {
                   {servicesLoading ? (
                     <div className="flex justify-center p-8"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div></div>
                   ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {services?.map(service => (
-                        <div 
-                          key={service.id}
-                          onClick={() => setSelectedServiceId(service.id)}
-                          className={`p-4 border rounded-xl cursor-pointer transition-all ${
-                            selectedServiceId === service.id 
-                              ? "border-primary bg-primary/5 ring-1 ring-primary" 
-                              : "border-border hover:border-primary/50"
-                          }`}
-                        >
-                          <div className="flex justify-between items-start mb-2">
-                            <h3 className="font-medium">{service.name}</h3>
-                            <span className="text-primary font-medium">R{service.price}</span>
+                    <div className="space-y-8">
+                      {Object.entries(
+                        (services ?? []).reduce((acc, service) => {
+                          if (!acc[service.category]) acc[service.category] = [];
+                          acc[service.category].push(service);
+                          return acc;
+                        }, {} as Record<string, typeof services>)
+                      ).map(([category, items]) => (
+                        <div key={category}>
+                          <div className="flex items-center gap-3 mb-4">
+                            <h3 className="font-serif text-lg text-primary whitespace-nowrap">{category}</h3>
+                            <div className="h-px bg-border flex-1" />
                           </div>
-                          <div className="text-sm text-muted-foreground uppercase tracking-wider">
-                            {service.durationMinutes} min
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            {items?.map(service => (
+                              <div
+                                key={service.id}
+                                onClick={() => setSelectedServiceId(service.id)}
+                                className={`p-4 border rounded-xl cursor-pointer transition-all ${
+                                  selectedServiceId === service.id
+                                    ? "border-primary bg-primary/5 ring-1 ring-primary"
+                                    : "border-border hover:border-primary/50"
+                                }`}
+                              >
+                                <div className="flex justify-between items-start mb-1">
+                                  <h4 className="font-medium text-sm">{service.name}</h4>
+                                  <span className="text-primary font-semibold text-sm ml-2 whitespace-nowrap">R{service.price}</span>
+                                </div>
+                                <div className="text-xs text-muted-foreground uppercase tracking-wider">
+                                  {service.durationMinutes} min
+                                </div>
+                              </div>
+                            ))}
                           </div>
                         </div>
                       ))}
