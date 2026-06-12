@@ -69,10 +69,10 @@ export default function Home() {
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             {[
-              { title: "Wash, Blow & Style", image: "/images/gallery-hair-1.png", desc: "Professional wash, blow dry and styling." },
-              { title: "Colour", image: "/images/hero-bg.png", desc: "Full colour, roots and toning services." },
-              { title: "Highlights", image: "/images/gallery-hair-1.png", desc: "Balayage, foils and creative highlights." },
-              { title: "Treatments", image: "/images/hero-bg.png", desc: "Deep conditioning and keratin treatments." }
+              { title: "Wash, Blow & Style", image: "/images/hair-wash.jpg", desc: "Professional wash, blow dry and styling." },
+              { title: "Colour", image: "/images/hair-colour.jpg", desc: "Full colour, roots and toning services." },
+              { title: "Highlights", image: "/images/hair-highlights.jpg", desc: "Balayage, foils and creative highlights." },
+              { title: "Treatments", image: "/images/hair-wash.jpg", desc: "Deep conditioning and keratin treatments." }
             ].map((service, i) => (
               <motion.div 
                 key={i}
