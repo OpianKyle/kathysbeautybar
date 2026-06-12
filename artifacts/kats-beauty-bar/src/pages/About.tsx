@@ -35,7 +35,7 @@ export default function About() {
               Located conveniently at the Caltex Garage on Heideveld Road, we've created a blush pink and rose gold haven where you can escape the daily grind. 
             </p>
             <p className="text-lg text-muted-foreground leading-relaxed">
-              Our team specializes in Hair, Brows, Lashes, and Nails. We believe in enhancing your natural beauty using premium products, expert techniques, and an unwavering commitment to excellence. You deserve to feel beautiful, and we are here to ensure you do.
+              Our team specializes in hair — from cuts and colour to highlights and treatments. We believe in enhancing your natural beauty using premium products, expert techniques, and an unwavering commitment to excellence. You deserve to feel beautiful, and we are here to ensure you do.
             </p>
             
             <div className="pt-8 border-t border-border mt-8 flex gap-8">

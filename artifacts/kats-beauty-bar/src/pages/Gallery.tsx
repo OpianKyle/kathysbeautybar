@@ -2,22 +2,20 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 
-const CATEGORIES = ["All", "Hair", "Brows", "Lashes", "Nails"];
+const CATEGORIES = ["All", "Hair"];
 
 const IMAGES = [
   { id: 1, src: "/images/gallery-hair-1.png", category: "Hair", alt: "Luxury hair styling" },
-  { id: 2, src: "/images/gallery-brows-1.png", category: "Brows", alt: "Perfect eyebrows" },
-  { id: 3, src: "/images/gallery-lashes-1.png", category: "Lashes", alt: "Volume eyelash extensions" },
-  { id: 4, src: "/images/gallery-nails-1.png", category: "Nails", alt: "Elegant gel manicure" },
-  { id: 5, src: "/images/hero-bg.png", category: "Interior", alt: "Salon interior" },
+  { id: 2, src: "/images/hero-bg.png", category: "Hair", alt: "Salon interior" },
+  { id: 3, src: "/images/gallery-hair-1.png", category: "Hair", alt: "Hair colour and highlights" },
 ];
 
 export default function Gallery() {
   const [filter, setFilter] = useState("All");
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
-  const filteredImages = filter === "All" 
-    ? IMAGES 
+  const filteredImages = filter === "All"
+    ? IMAGES
     : IMAGES.filter(img => img.category === filter);
 
   return (
@@ -36,8 +34,8 @@ export default function Gallery() {
               key={category}
               onClick={() => setFilter(category)}
               className={`px-6 py-2 rounded-full text-sm uppercase tracking-wider transition-colors ${
-                filter === category 
-                  ? "bg-primary text-white" 
+                filter === category
+                  ? "bg-primary text-white"
                   : "bg-muted text-muted-foreground hover:bg-primary/10 hover:text-primary"
               }`}
             >
@@ -46,7 +44,7 @@ export default function Gallery() {
           ))}
         </div>
 
-        <motion.div 
+        <motion.div
           layout
           className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6"
         >
@@ -65,9 +63,9 @@ export default function Gallery() {
                 <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity z-10 flex items-center justify-center">
                   <span className="text-white text-sm uppercase tracking-widest font-medium border border-white/50 px-6 py-2 rounded-full backdrop-blur-sm">View</span>
                 </div>
-                <img 
-                  src={img.src} 
-                  alt={img.alt} 
+                <img
+                  src={img.src}
+                  alt={img.alt}
                   className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                 />
               </motion.div>
@@ -78,9 +76,9 @@ export default function Gallery() {
         <Dialog open={!!selectedImage} onOpenChange={(open) => !open && setSelectedImage(null)}>
           <DialogContent className="max-w-5xl bg-transparent border-none p-0 overflow-hidden shadow-none">
             {selectedImage && (
-              <img 
-                src={selectedImage} 
-                alt="Enlarged view" 
+              <img
+                src={selectedImage}
+                alt="Enlarged view"
                 className="w-full h-auto max-h-[85vh] object-contain rounded-lg"
               />
             )}

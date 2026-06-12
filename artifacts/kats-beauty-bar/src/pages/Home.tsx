@@ -32,13 +32,13 @@ export default function Home() {
               Enhancing Your Natural Beauty
             </p>
             <div className="flex items-center justify-center gap-4 text-sm tracking-widest uppercase text-muted-foreground mb-12">
-              <span>Hair</span>
+              <span>Cuts</span>
               <span className="w-1 h-1 rounded-full bg-primary/50" />
-              <span>Brows</span>
+              <span>Colour</span>
               <span className="w-1 h-1 rounded-full bg-primary/50" />
-              <span>Lashes</span>
+              <span>Highlights</span>
               <span className="w-1 h-1 rounded-full bg-primary/50" />
-              <span>Nails</span>
+              <span>Treatments</span>
             </div>
             
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -69,10 +69,10 @@ export default function Home() {
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             {[
-              { title: "Hair Styling", image: "/images/gallery-hair-1.png", desc: "Expert cuts, color, and treatments." },
-              { title: "Brow Artistry", image: "/images/gallery-brows-1.png", desc: "Shaping, tinting, and lamination." },
-              { title: "Lash Extensions", image: "/images/gallery-lashes-1.png", desc: "Classic, hybrid, and volume sets." },
-              { title: "Nail Care", image: "/images/gallery-nails-1.png", desc: "Gel, acrylics, manicures, and pedicures." }
+              { title: "Wash, Blow & Style", image: "/images/gallery-hair-1.png", desc: "Professional wash, blow dry and styling." },
+              { title: "Colour", image: "/images/hero-bg.png", desc: "Full colour, roots and toning services." },
+              { title: "Highlights", image: "/images/gallery-hair-1.png", desc: "Balayage, foils and creative highlights." },
+              { title: "Treatments", image: "/images/hero-bg.png", desc: "Deep conditioning and keratin treatments." }
             ].map((service, i) => (
               <motion.div 
                 key={i}

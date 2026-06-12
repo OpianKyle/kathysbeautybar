@@ -41,17 +41,17 @@ export default function Booking() {
   const { data: services, isLoading: servicesLoading } = useListServices();
 
   const selectedServices = services?.filter(s => selectedServiceIds.includes(s.id)) ?? [];
-  const totalDuration = selectedServices.reduce((sum, s) => sum + s.durationMinutes, 0);
   const totalPrice = selectedServices.reduce((sum, s) => sum + Number(s.price), 0);
+  const SLOT_DURATION = 60;
 
   const firstServiceId = selectedServiceIds[0] ?? 0;
 
   const { data: availability, isLoading: availabilityLoading } = useQuery({
-    queryKey: ["availability", selectedDate ? format(selectedDate, "yyyy-MM-dd") : null, firstServiceId, totalDuration],
+    queryKey: ["availability", selectedDate ? format(selectedDate, "yyyy-MM-dd") : null, firstServiceId],
     enabled: selectedServiceIds.length > 0 && !!selectedDate,
     queryFn: () => {
       const date = format(selectedDate!, "yyyy-MM-dd");
-      const url = `/api/availability?date=${date}&serviceId=${firstServiceId}&durationMinutes=${totalDuration}`;
+      const url = `/api/availability?date=${date}&serviceId=${firstServiceId}&durationMinutes=${SLOT_DURATION}`;
       return customFetch<AvailabilityResponse>(url);
     },
   });
@@ -149,7 +149,7 @@ export default function Booking() {
                     <h2 className="text-2xl font-serif text-primary">Select Services</h2>
                     {selectedServiceIds.length > 0 && (
                       <span className="text-sm text-muted-foreground">
-                        {selectedServiceIds.length} selected · R{totalPrice} · {totalDuration} min
+                        {selectedServiceIds.length} selected · R{totalPrice} · 1 hour
                       </span>
                     )}
                   </div>
@@ -210,7 +210,7 @@ export default function Booking() {
                     <div className="flex items-center justify-between bg-primary/5 border border-primary/20 rounded-xl px-4 py-3">
                       <div className="text-sm">
                         <span className="font-medium">{selectedServiceIds.length} service{selectedServiceIds.length > 1 ? "s" : ""}</span>
-                        <span className="text-muted-foreground"> · {totalDuration} min total</span>
+                        <span className="text-muted-foreground"> · 1 hour</span>
                       </div>
                       <span className="font-semibold text-primary">R{totalPrice}</span>
                     </div>
@@ -255,7 +255,7 @@ export default function Booking() {
                     <div className="space-y-4">
                       <h3 className="font-medium text-lg">Available Times</h3>
                       <p className="text-xs text-muted-foreground">
-                        Showing slots for {totalDuration} min ({selectedServiceIds.length} service{selectedServiceIds.length > 1 ? "s" : ""} back-to-back)
+                        Showing available 1-hour slots
                       </p>
                       {!selectedDate ? (
                         <p className="text-muted-foreground text-sm">Please select a date first.</p>
@@ -331,7 +331,7 @@ export default function Booking() {
                     </div>
                     <div className="pt-2 border-t border-primary/10 flex justify-between text-sm">
                       <span className="text-muted-foreground">
-                        {selectedDate ? format(selectedDate, "EEEE, MMMM do, yyyy") : ""} · {totalDuration} min
+                        {selectedDate ? format(selectedDate, "EEEE, MMMM do, yyyy") : ""} · 1 hour
                       </span>
                       <span className="font-semibold text-primary">R{totalPrice}</span>
                     </div>
