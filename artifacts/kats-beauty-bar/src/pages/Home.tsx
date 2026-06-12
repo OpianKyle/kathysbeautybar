@@ -72,7 +72,7 @@ export default function Home() {
               { title: "Wash, Blow & Style", image: "/images/hair-wash.jpg", desc: "Professional wash, blow dry and styling." },
               { title: "Colour", image: "/images/hair-colour.jpg", desc: "Full colour, roots and toning services." },
               { title: "Highlights", image: "/images/hair-highlights.jpg", desc: "Balayage, foils and creative highlights." },
-              { title: "Treatments", image: "/images/hair-wash.jpg", desc: "Deep conditioning and keratin treatments." }
+              { title: "Treatments", image: "/images/hair-treatment.jpg", desc: "Deep conditioning and keratin treatments." }
             ].map((service, i) => (
               <motion.div 
                 key={i}

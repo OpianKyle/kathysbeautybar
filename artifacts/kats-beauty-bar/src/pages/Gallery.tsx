@@ -8,7 +8,8 @@ const IMAGES = [
   { id: 1, src: "/images/hair-wash.jpg", category: "Hair", alt: "Hair wash and treatment" },
   { id: 2, src: "/images/hair-colour.jpg", category: "Hair", alt: "Hair colour and styling" },
   { id: 3, src: "/images/hair-highlights.jpg", category: "Hair", alt: "Highlights and balayage" },
-  { id: 4, src: "/images/hero-bg.png", category: "Hair", alt: "Salon interior" },
+  { id: 4, src: "/images/hair-treatment.jpg", category: "Hair", alt: "Hair wash treatment" },
+  { id: 5, src: "/images/hero-bg.png", category: "Hair", alt: "Salon interior" },
 ];
 
 export default function Gallery() {
